@@ -1,0 +1,20 @@
+=== Hashira Placements Assignment Solver ===
+Reading JSON input...
+Total roots provided (n): 4
+Number of roots to use (k): 3
+Polynomial degree = k - 1 = 2
+
+Root 1 (base 10): 4 -> decimal = 4
+Root 2 (base 2): 111 -> decimal = 7
+Root 3 (base 10): 12 -> decimal = 12
+Root 4 (base 4): 213 -> decimal = 39
+
+=== Final Result ===
+Constant term (c) = 336
+
+✅ Done. Your output is above.
+👉 Next steps:
+1. Save your JSON input as input.json
+2. Run:   ./solve < input.json > output.txt
+3. Check output.txt for result
+4. Push main.cpp, input.json, and output.txt to GitHub
