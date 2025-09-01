@@ -2,18 +2,82 @@
 #include <string>
 #include <vector>
 #include <cctype>
-#include <boost/multiprecision/cpp_int.hpp>
 using namespace std;
-using namespace boost::multiprecision;
 
-cpp_int convertToDecimal(const string &value, int base) {
-    cpp_int res = 0;
+// --- Big Integer (string-based) ---
+struct BigInt {
+    string val; // stored as normal decimal string
+
+    BigInt(long long x = 0) {
+        val = to_string(x);
+    }
+
+    BigInt(const string &s) {
+        int i = 0;
+        while (i < (int)s.size() - 1 && s[i] == '0') i++; // remove leading zeros
+        val = s.substr(i);
+    }
+
+    static BigInt multiply(const BigInt &a, const BigInt &b) {
+        string A = a.val, B = b.val;
+        int n = A.size(), m = B.size();
+        vector<int> res(n + m, 0);
+        for (int i = n - 1; i >= 0; i--) {
+            for (int j = m - 1; j >= 0; j--) {
+                int mul = (A[i] - '0') * (B[j] - '0');
+                int sum = res[i + j + 1] + mul;
+                res[i + j + 1] = sum % 10;
+                res[i + j] += sum / 10;
+            }
+        }
+        string s;
+        for (int num : res) {
+            if (!(s.empty() && num == 0)) s.push_back('0' + num);
+        }
+        return BigInt(s.empty() ? "0" : s);
+    }
+
+    BigInt operator*(const BigInt &other) const {
+        return multiply(*this, other);
+    }
+
+    BigInt operator-() const {
+        if (val == "0") return *this;
+        return BigInt("-" + val);
+    }
+
+    friend ostream& operator<<(ostream &os, const BigInt &b) {
+        os << b.val;
+        return os;
+    }
+};
+
+// --- Convert from base to decimal BigInt ---
+BigInt convertToDecimal(const string &value, int base) {
+    BigInt res(0);
+    BigInt B(base);
     for (char c : value) {
         int digit;
         if (isdigit(c)) digit = c - '0';
         else if (isalpha(c)) digit = tolower(c) - 'a' + 10;
         else digit = 0;
-        res = res * base + digit;
+
+        // res = res * base + digit
+        res = BigInt::multiply(res, B);
+        res = BigInt::multiply(res, BigInt(1)); // copy
+        if (digit > 0) {
+            res = BigInt::multiply(res, BigInt(1)); // safe copy
+            string s = res.val;
+            int carry = digit, i = s.size() - 1;
+            while (i >= 0 && carry > 0) {
+                int sum = (s[i] - '0') + carry;
+                s[i] = '0' + (sum % 10);
+                carry = sum / 10;
+                i--;
+            }
+            if (carry) s = to_string(carry) + s;
+            res = BigInt(s);
+        }
     }
     return res;
 }
@@ -30,7 +94,7 @@ int main() {
     while (getline(cin, line)) input += line;
 
     int n = 0, k = 0;
-    vector<cpp_int> roots;
+    vector<BigInt> roots;
 
     // Extract n and k
     {
@@ -64,7 +128,7 @@ int main() {
         size_t quote_v2 = input.find("\"", quote_v1 + 1);
         string val_str = input.substr(quote_v1 + 1, quote_v2 - quote_v1 - 1);
 
-        cpp_int root = convertToDecimal(val_str, base);
+        BigInt root = convertToDecimal(val_str, base);
         roots.push_back(root);
 
         root_count++;
@@ -76,8 +140,8 @@ int main() {
 
     // Compute constant term using first k roots
     int degree = k - 1;
-    cpp_int c = 1;
-    for (int i = 0; i < k; i++) c *= roots[i];
+    BigInt c(1);
+    for (int i = 0; i < k; i++) c = c * roots[i];
     if (degree % 2 == 1) c = -c;
 
     cout << "\n=== Final Result ===\n";
